@@ -2,7 +2,7 @@
 
 [中文](README.md) | [English](README.en.md)
 
-[![Android signed APK](https://github.com/iamr0s/carvex-android/actions/workflows/android.yml/badge.svg)](https://github.com/iamr0s/carvex-android/actions/workflows/android.yml)
+[![Android signed APK](https://github.com/wyf1463630616/carvex-android/actions/workflows/android.yml/badge.svg)](https://github.com/wyf1463630616/carvex-android/actions/workflows/android.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 > 面向多协议车机互联的 Android 实现；CarPlay 是当前首个按 iPhone 固件复现的协议。
@@ -157,25 +157,24 @@ Release 构建开启 R8 与资源压缩。Lint 配置为 `abortOnError = true`�
 
 ## CI 与签名
 
-`.github/workflows/android.yml` 在推送 `main`、Pull Request 和手动触发时运行，分三部分：
+`.github/workflows/android.yml` 在推送 `main` 或手动触发时运行，分三部分：
 
 - `protocol-tests`：`:protocol-carplay`、`:pcm-core`、`:host-api`、`:bridge`、
   `:host-carlife-mixing` 的纯 JVM 测试。
-- `apk`：按 flavor 展开的矩阵，每个品牌一个 job 并行执行自己的单测、lint 和打包
-  （`:app:test<Brand>DebugUnitTest`、`:app:lint<Brand>Release`、
-  `:app:assemble<Brand>Release`）。lint 必须点名到 flavor：`:app` 有 flavor 后 AGP
-  只生成 `lint<Brand>Release`，没有聚合的 `lintRelease`。`fail-fast: false`，
-  一个品牌失败不会取消其它品牌。
-- `publish`：收集五个 job 的 APK，打包成 `CarVex_all_flavors_release_<version>.zip`
-  （版本从 APK 文件名派生，与散装包同源），生成 `SHA256SUMS` 与 `build-info.txt`，
-  非 PR 运行再发预发布版本。
+- `apk`：只构建 `xiaomi` 一个 flavor，执行 `:app:testXiaomiDebugUnitTest`、
+  `:app:lintXiaomiRelease`、`:app:assembleXiaomiRelease`。lint 必须点名到 flavor：
+  `:app` 有 flavor 后 AGP 只生成 `lint<Brand>Release`，没有聚合的 `lintRelease`。
+  本 fork 只产出 `com.baidu.carlife.xiaomi` 一个品牌的包；需要五品牌全量校验时，
+  按上文命令在本地构建。
+- `publish`：取回该 APK，生成 `SHA256SUMS` 与 `build-info.txt`，再发预发布版本。
+  它依赖 `protocol-tests`：测试失败的提交不会产出可下载的包。
 
 CI 直接使用仓库内公开的 `.signing/keystore.properties` 与 `.signing/release.jks`，
-不再依赖 secrets；fork PR 也使用同一份公开签名材料。
+不再依赖 secrets。
 
-每次非 PR 运行都会把散装 APK、`CarVex_all_flavors_release_<version>.zip` 与
-`SHA256SUMS` 作为 `build-<run>` 预发布版本上传到 GitHub Releases。这些是实验构建：
-车载音频与麦克风传输尚未实现，视频、触摸与兼容性仍需实车验收。
+每次运行都会把 APK、`SHA256SUMS` 与 `build-info.txt` 作为 `build-<run>` 预发布版本
+上传到 GitHub Releases。这些是实验构建：车载音频与麦克风传输尚未实现，视频、触摸与
+兼容性仍需实车验收。
 
 本仓库有意公开 `.signing/keystore.properties` 与 `release.jks`，用于可复现构建；
 它们不是安全边界。仍不要提交 `local.properties`、设备私有日志或真实用户数据。

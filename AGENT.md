@@ -159,9 +159,11 @@ Wrapper。`compileSdk`/`targetSdk` 为 37，`minSdk` 为 29。
 写 `lintRelease` 会在任务选择阶段报 ambiguous，什么都没跑就失败。新增 flavor 时，
 这份清单和 CI 都要同步加上对应的 `lint<Brand>Release`。
 
-CI 运行同一组检查并校验 APK。其中每个 flavor 是独立 job 并行执行，新增 flavor 时
-要同时往 workflow 的 matrix 里加一项，否则该品牌不会被验证。JVM 测试通过只证明被
-检查的条件，不证明蓝牙行为、Wi-Fi handoff、首帧或车机互通。
+CI 运行同一组检查并校验 APK。本 fork 的 workflow 只构建 `xiaomi` 一个 flavor，不展开
+五品牌矩阵；恢复或新增其它品牌时，要按上面的清单同时补上对应的
+`test<Brand>DebugUnitTest`、`lint<Brand>Release` 与 `assemble<Brand>Release`，
+否则该品牌不会被验证。JVM 测试通过只证明被检查的条件，不证明蓝牙行为、Wi-Fi
+handoff、首帧或车机互通。
 
 ## 7. 协议实现限制
 

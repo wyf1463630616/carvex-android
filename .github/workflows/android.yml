@@ -2,8 +2,6 @@ name: Android signed APK
 on:
   push:
     branches: [main]
-  # PR 也要跑同一条流水线：此前只有 push 到 main 才验证，PR 处于零校验状态。
-  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
@@ -11,10 +9,10 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  # 纯 JVM 的协议与宿主测试：与品牌无关，单独一个 job，和下面的矩阵并行跑。
+  # 纯 JVM 的协议与宿主测试：与品牌无关，单独一个 job，和下面的打包 job 并行跑。
   protocol-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     env:
       BUILD_NUMBER: ${{ github.run_number }}
       COMMIT_SHA: ${{ github.sha }}
@@ -104,24 +102,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  # 一个 flavor 一个 job：各自拿到独立的 runner 和 4 个核，五个品牌真并行。
-  # 单 job 里也能并行（--parallel，且开启 configuration cache 后同一 subproject 内的
-  # 任务也会并行），但并行度受这台 runner 的核数限制，五个 flavor 的 lint 与 R8 打包
-  # 仍然要排队；拆成独立 job 才拿得到额外的核。
+  # 只构建 xiaomi 一个 flavor：这是本 fork 自用的出包通道，不做五品牌矩阵。
+  # 需要全量品牌校验时按 README 的本地命令跑，或临时把这里改回矩阵。
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-    name: apk (${{ matrix.brand }})
-    strategy:
-      # 一个品牌失败不取消其它品牌，便于一次看全所有问题。
-      fail-fast: false
-      matrix:
-        include:
-          - brand: xiaomi
-          - brand: oppo
-          - brand: vivo
-          - brand: samsung
-          - brand: honor
+    timeout-minutes: 30
+    name: apk (xiaomi)
     env:
       BUILD_NUMBER: ${{ github.run_number }}
       COMMIT_SHA: ${{ github.sha }}
@@ -159,23 +145,19 @@ jobs:
           test -s .signing/release.jks
           mkdir -p artifacts
           echo "Using tracked signing material from .signing/"
-      - name: Unit tests, lint and signed APK (${{ matrix.brand }})
+      - name: Unit tests, lint and signed APK (xiaomi)
         shell: bash
         run: |
           set +e
           set -uo pipefail
           chmod +x gradlew
           mkdir -p artifacts
-          # lint 必须点名到 flavor：:app 有五个 flavor，AGP 只生成 lint<Brand>Release，
+          # lint 必须点名到 flavor：:app 有 flavor 后 AGP 只生成 lint<Brand>Release，
           # 没有聚合的 lintRelease——写 lintRelease 会在任务选择阶段报 ambiguous，
           # 什么都不跑就失败。
-          # GitHub matrix 的键大小写不敏感，不能再放一个 Brand 键（会报 already defined）；
-          # 品牌名首字母大写在这里现推：xiaomi -> Xiaomi。
-          BRAND="${{ matrix.brand }}"
-          BRAND_CAP="$(tr '[:lower:]' '[:upper:]' <<< "${BRAND:0:1}")${BRAND:1}"
-          ./gradlew ":app:test${BRAND_CAP}DebugUnitTest" \
-            ":app:lint${BRAND_CAP}Release" \
-            ":app:assemble${BRAND_CAP}Release" \
+          ./gradlew ":app:testXiaomiDebugUnitTest" \
+            ":app:lintXiaomiRelease" \
+            ":app:assembleXiaomiRelease" \
             --build-cache --parallel --configuration-cache --stacktrace --console=plain 2>&1 | tee artifacts/build.log
           gradle_status="${PIPESTATUS[0]}"
           tee_status="${PIPESTATUS[1]:-0}"
@@ -187,7 +169,7 @@ jobs:
             excerpt="$(grep -n -E 'FAILURE:|What went wrong|^e: |error:|Lint found [0-9]+ error' -A 20 artifacts/build.log 2>/dev/null | tail -n 60)"
             [[ -n "$excerpt" ]] || excerpt="$(tail -n 60 artifacts/build.log 2>/dev/null)"
             {
-              echo "### ${{ matrix.brand }} failed"
+              echo "### xiaomi failed"
               echo ''
               echo "\`gradle=${gradle_status} tee=${tee_status}\`"
               echo ''
@@ -197,7 +179,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             msg="$(printf '%s\n' "$excerpt" | grep -v '^[[:space:]]*$' | head -n 8 \
               | tr '\n' ' ' | tr -s ' ' | cut -c1-900 | sed 's/%/%25/g')"
-            echo "::error title=${{ matrix.brand }} failed (gradle=${gradle_status}, tee=${tee_status})::${msg}"
+            echo "::error title=xiaomi failed (gradle=${gradle_status}, tee=${tee_status})::${msg}"
           fi
           exit "$status"
       - name: Verify APK and write metadata
@@ -205,37 +187,37 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          APKS=(app/build/outputs/apk/${{ matrix.brand }}/release/CarVex_${{ matrix.brand }}_release_*.apk)
+          APKS=(app/build/outputs/apk/xiaomi/release/CarVex_xiaomi_release_*.apk)
           [[ ${#APKS[@]} -eq 1 ]]
           APK="${APKS[0]}"
           cp "$APK" artifacts/
           APK_NAME="$(basename "$APK")"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs \
-            "artifacts/$APK_NAME" > "artifacts/signature-${{ matrix.brand }}.txt"
+            "artifacts/$APK_NAME" > "artifacts/signature-xiaomi.txt"
           # 版本号从 APK 里读回来：构建由 checkout 派生版本，这是唯一不可能与实际产物不一致的值。
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK")
           VERSION_CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p")
           VERSION_NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")
           printf 'Brand: %s\nAPK: %s\nCommit: %s\nVersion code: %s\nVersion name: %s\nRun: %s\n' \
-            "${{ matrix.brand }}" "$APK_NAME" "$COMMIT_SHA" "$VERSION_CODE" "$VERSION_NAME" \
+            "xiaomi" "$APK_NAME" "$COMMIT_SHA" "$VERSION_CODE" "$VERSION_NAME" \
             "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-            > "artifacts/build-info-${{ matrix.brand }}.txt"
-          printf '### %s\n\n- APK: `%s`\n- Version code: %s (%s)\n- Video, touch and compatibility require vehicle acceptance.\n- Vehicle audio and microphone are source-integrated and await in-vehicle acceptance.\n' \
-            "${{ matrix.brand }}" "$APK_NAME" "$VERSION_CODE" "$VERSION_NAME" >> "$GITHUB_STEP_SUMMARY"
+            > "artifacts/build-info-xiaomi.txt"
+          printf '### xiaomi\n\n- APK: `%s`\n- Version code: %s (%s)\n- Video, touch and compatibility require vehicle acceptance.\n- Vehicle audio and microphone are source-integrated and await in-vehicle acceptance.\n' \
+            "$APK_NAME" "$VERSION_CODE" "$VERSION_NAME" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: apk-${{ matrix.brand }}
+          name: apk-xiaomi
           path: |
             artifacts/*.apk
-            artifacts/build-info-${{ matrix.brand }}.txt
-            artifacts/signature-${{ matrix.brand }}.txt
+            artifacts/build-info-xiaomi.txt
+            artifacts/signature-xiaomi.txt
           retention-days: 90
       - name: Reports and failure logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: reports-${{ github.run_number }}-${{ matrix.brand }}
+          name: reports-${{ github.run_number }}-xiaomi
           path: |
             artifacts/build.log
             **/build/reports/**
@@ -243,12 +225,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  # 汇总：把五个 job 的 APK 合到一处，按 flavor 打 zip、算校验和、拼元数据、发预发布版本。
+  # 汇总：把打包 job 的 APK 取回来，算校验和、拼元数据、发预发布版本。
+  # 依赖 protocol-tests 是刻意的：出包必须建立在协议与宿主测试通过之上，
+  # 不让编译通过但行为回归的提交拿到一个可下载的包。
   publish:
     needs: [protocol-tests, apk]
-    # 只在 push 到 main / 手动触发时发布：PR（尤其来自 fork 的 PR）拿不到 contents: write，
-    # 无条件创建 release 会让每个 PR 都红。PR 仍然会跑测试、lint 与打包，只是不发版。
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -257,34 +238,27 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: apk-*
-          merge-multiple: true
+          name: apk-xiaomi
           path: artifacts
-      - name: Bundle, checksums and metadata
+      - name: Checksums and metadata
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           cd artifacts
           APKS=(*.apk)
-          if [[ ${#APKS[@]} -ne 5 ]]; then
-            echo "应有 5 个品牌的 APK，实际 ${#APKS[@]} 个：${APKS[*]:-<none>}" >&2
+          if [[ ${#APKS[@]} -ne 1 ]]; then
+            echo "应有 1 个 APK，实际 ${#APKS[@]} 个：${APKS[*]:-<none>}" >&2
             exit 1
           fi
-          cat build-info-*.txt > build-info.txt
-          # 版本号从 APK 文件名派生（CarVex_xiaomi_release_20003.apk -> 20003），
-          # 与散装 APK 用同一套命名：CarVex_all_flavors_release_<version>.zip。
-          VERSION="$(basename "${APKS[0]}" .apk)"
-          VERSION="${VERSION##*_}"
-          BUNDLE="CarVex_all_flavors_release_${VERSION}.zip"
-          zip -q "$BUNDLE" "${APKS[@]}" build-info.txt
-          sha256sum *.apk "$BUNDLE" > SHA256SUMS
+          cp build-info-xiaomi.txt build-info.txt
+          sha256sum *.apk > SHA256SUMS
           {
             echo '### Signed experimental APK'
             echo ''
             cat build-info.txt
             echo ''
-            echo "五个品牌的 APK 同时打包在 \`${BUNDLE}\` 中。"
+            echo '单品牌构建：仅 `xiaomi`（`com.baidu.carlife.xiaomi`）。'
           } >> "$GITHUB_STEP_SUMMARY"
           ls -lh
       - name: Publish downloadable experimental build
@@ -294,14 +268,14 @@ jobs:
         run: |
           set -euo pipefail
           TAG="build-${BUILD_NUMBER}"
-          mapfile -t ASSETS < <(ls artifacts/*.apk artifacts/*.zip artifacts/SHA256SUMS artifacts/build-info.txt)
+          mapfile -t ASSETS < <(ls artifacts/*.apk artifacts/SHA256SUMS artifacts/build-info.txt)
           # 重跑同一 run 时 tag 已存在：create 会失败，改成覆盖上传，rerun 才不会卡在这里。
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
           else
             gh release create "$TAG" "${ASSETS[@]}" \
               --target "$COMMIT_SHA" --title "Experimental build ${BUILD_NUMBER}" --prerelease \
-              --notes "Signed build from ${COMMIT_SHA}. Android 10+. Protocol/UI build for vehicle validation. Vehicle audio and microphone transfer are not implemented. Follow README and docs/ACCEPTANCE.zh-CN.md."
+              --notes "Signed xiaomi build from ${COMMIT_SHA}. Android 10+. Protocol/UI build for vehicle validation. Vehicle audio and microphone transfer are not implemented. Follow README and docs/ACCEPTANCE.zh-CN.md."
           fi
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
@@ -309,7 +283,6 @@ jobs:
           name: dist-${{ github.run_number }}
           path: |
             artifacts/*.apk
-            artifacts/*.zip
             artifacts/SHA256SUMS
             artifacts/build-info.txt
           retention-days: 90

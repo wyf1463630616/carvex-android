@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-[![Android signed APK](https://github.com/iamr0s/carvex-android/actions/workflows/android.yml/badge.svg)](https://github.com/iamr0s/carvex-android/actions/workflows/android.yml)
+[![Android signed APK](https://github.com/wyf1463630616/carvex-android/actions/workflows/android.yml/badge.svg)](https://github.com/wyf1463630616/carvex-android/actions/workflows/android.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 > An Android implementation of multi-protocol vehicle connectivity; CarPlay is the first
@@ -174,29 +174,26 @@ Release builds enable R8 and resource shrinking. Lint is configured with
 
 ## CI and signing
 
-The workflow at `.github/workflows/android.yml` runs on pushes to `main`, on pull requests
-and manually, in three parts:
+The workflow at `.github/workflows/android.yml` runs on pushes to `main` and manually, in
+three parts:
 
 - `protocol-tests`: the pure-JVM tests of `:protocol-carplay`, `:pcm-core`, `:host-api`,
   `:bridge` and `:host-carlife-mixing`.
-- `apk`: a flavor matrix, one job per brand running its own tests, lint and build in
-  parallel (`:app:test<Brand>DebugUnitTest`, `:app:lint<Brand>Release`,
-  `:app:assemble<Brand>Release`). Lint has to name the flavor: with flavors AGP generates
-  `lint<Brand>Release` only, and there is no aggregate `lintRelease`. `fail-fast: false`,
-  so one brand failing does not cancel the others.
-- `publish`: collects the five APKs, bundles them into
-  `CarVex_all_flavors_release_<version>.zip` (the version comes from the APK filenames, so
-  it matches the loose APKs), writes `SHA256SUMS` and `build-info.txt`, and on non-PR runs
-  publishes the prerelease.
+- `apk`: builds a single flavor, `xiaomi`, running `:app:testXiaomiDebugUnitTest`,
+  `:app:lintXiaomiRelease` and `:app:assembleXiaomiRelease`. Lint has to name the flavor:
+  with flavors AGP generates `lint<Brand>Release` only, and there is no aggregate
+  `lintRelease`. This fork produces only the `com.baidu.carlife.xiaomi` build; for the full
+  five-brand check use the local commands above.
+- `publish`: collects that APK, writes `SHA256SUMS` and `build-info.txt`, and publishes the
+  prerelease. It depends on `protocol-tests`, so a commit with failing tests never yields a
+  downloadable build.
 
 CI uses the public `.signing/keystore.properties` and `.signing/release.jks` tracked in
-this repository; it no longer depends on repository secrets. Fork PRs use the same public
-signing material.
+this repository; it no longer depends on repository secrets.
 
-Every non-PR run publishes the loose APKs, `CarVex_all_flavors_release_<version>.zip` and
-`SHA256SUMS` as a prerelease named `build-<run>` under GitHub Releases. These are
-experimental builds: audio and microphone transfer to the vehicle is not implemented yet,
-and video, touch and compatibility still
+Every run publishes the APK, `SHA256SUMS` and `build-info.txt` as a prerelease named
+`build-<run>` under GitHub Releases. These are experimental builds: audio and microphone
+transfer to the vehicle is not implemented yet, and video, touch and compatibility still
 require vehicle acceptance.
 
 This repository intentionally publishes `.signing/keystore.properties` and `release.jks`
