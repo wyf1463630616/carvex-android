@@ -4,7 +4,7 @@ package io.github.iamr0s.carvex.protocol.api
  * 协议会话契约（纯 JVM）。
  *
  * 方向：协议实现 → 本契约 → `:bridge`。
- * `:bridge` 负责把宿主（画面、音频、触摸）与协议会话接起来；协议实现不认识宿主。
+ * `:bridge` 负责把宿主机（画面、音频、触摸）与协议会话接起来；协议实现不认识宿主机。
  */
 interface ProtocolRunner {
     val stack: ProtocolStack
@@ -21,7 +21,7 @@ class SessionContext(
     val hooks: SessionHooks,
 )
 
-/** 协议 → 编排层的事件出口（协议不直接接触宿主）。 */
+/** 协议 → 编排层的事件出口（协议不直接接触宿主机）。 */
 interface SessionHooks {
     fun log(message: String)
 
@@ -34,7 +34,7 @@ interface SessionHooks {
     /** 归一化坐标（0..1）的触摸事件。 */
     fun touch(x: Float, y: Float, pressed: Boolean)
 
-    /** 协议侧按键（prefix + usage 的语义由协议定义，编排层负责转成宿主键码）。 */
+    /** 协议侧按键（prefix + usage 的语义由协议定义，编排层负责转成宿主机键码）。 */
     fun key(prefix: String, usage: Int, down: Boolean)
 
     /** 车机请求打开某个界面（URL/动作）。 */
@@ -52,7 +52,7 @@ interface SessionHooks {
     /** 其它需要展示给用户/诊断的文本。 */
     fun message(text: String)
 
-    /** 请求编排层开始某一路音频（宿主 → 协议方向的发声）。 */
+    /** 请求编排层开始某一路音频（宿主机 → 协议方向的发声）。 */
     fun audioRequest(request: AudioRequest)
 
     /** 请求编排层停止某一路音频。 */
@@ -79,7 +79,7 @@ interface AudioChannel {
     /** 写入一帧音频；返回是否被接受（队列满/已关闭时返回 false）。 */
     fun write(payload: ByteArray, timestampUs: Long): Boolean
 
-    /** 关闭通道；调用后编排层释放对应宿主音频。 */
+    /** 关闭通道；调用后编排层释放对应宿主机音频。 */
     fun close()
 }
 

@@ -203,7 +203,7 @@ private class BridgePresentation(context:Context,display:Display,private val bra
             horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(12.dp)
         ){
             Text(name,color=Color.White,fontSize=30.sp,fontWeight=FontWeight.Bold)
-            Text("未检测到 CarWith 宿主 · 当前显示本机投屏页",color=Color.White.copy(alpha=.72f),fontSize=15.sp)
+            Text("未检测到 CarWith 宿主机 · 当前显示本机投屏页",color=Color.White.copy(alpha=.72f),fontSize=15.sp)
             Text(state.stage.title,color=Color.White.copy(alpha=.9f),fontSize=18.sp)
             DonationCodes(Modifier.weight(1f).fillMaxWidth())
         }

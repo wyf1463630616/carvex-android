@@ -1,11 +1,11 @@
 // :bridge —— 编排层（Android）
 //
-// 只做"选协议、连宿主、重试降级、生命周期"：具体协议会话在 :protocol-carplay，
-// 共享状态与工具在 :core，宿主实现只在 :host-*。
+// 只做"选协议、连宿主机、重试降级、生命周期"：具体协议会话在 :protocol-carplay，
+// 共享状态与工具在 :core，宿主机实现只在 :host-*。
 //
 // 依赖方向：
 //   :bridge → :core + :protocol-carplay + :host-api + :protocol-api + :platform-android
-//   宿主模块（:host-carlife-mixing）**不依赖本模块**，只依赖 :host-api。
+//   宿主机模块（:host-carlife-mixing）**不依赖本模块**，只依赖 :host-api。
 //
 // 包结构：io.github.iamr0s.carvex.session（SessionController / 编码器 / 按键适配 / CastSession）
 plugins { alias(libs.plugins.android.library) }

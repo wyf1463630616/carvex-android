@@ -37,7 +37,7 @@ private fun nominalBitrate(width:Int,height:Int,fps:Int):Int {
 class SessionController(
     private val context:Context,
     private val localContent:LocalVideoContentFactory?=null,
-    /** 由 `:app` 注入的宿主编排工厂；编排层不再认识任何具体宿主模块。 */
+    /** 由 `:app` 注入的宿主机编排工厂；编排层不再认识任何具体宿主机模块。 */
     private val hostFactory:(Context,HostCallbacks)->CastHost,
     /** 由 `:app` 注入的协议栈；编排层只按它声明的能力决策，不认识具体协议实现。 */
     private val protocol:ProtocolStack) : CastSession {
@@ -59,7 +59,7 @@ class SessionController(
     @Volatile private var audioProbeListening=false
     @Volatile private var applyDynamicFps:((Int)->Unit)?=null
     @Volatile private var applyBitrate:((Int)->Unit)?=null
-    /** 当前会话里"把一个 CarWith 键码按下/松开发给宿主"的入口；CarPlay 事件映射与手动模拟共用。 */
+    /** 当前会话里"把一个 CarWith 键码按下/松开发给宿主机"的入口；CarPlay 事件映射与手动模拟共用。 */
     @Volatile private var sendKey:((Int,Boolean)->Boolean)?=null
     private val timer=Executors.newSingleThreadScheduledExecutor{r->Thread(r,"session-deadline").apply{isDaemon=true}}
     @Volatile private var disconnecting=false
@@ -171,7 +171,7 @@ class SessionController(
             }finally{timeout.cancel(false)}
         }
         val phoneHasScreen=AtomicBoolean(true)
-        // 自建投屏页：宿主没人接这个触摸时，事件要落到它上面。
+        // 自建投屏页：宿主机没人接这个触摸时，事件要落到它上面。
         val localContentRef=AtomicReference<LocalVideoContent?>(null)
         val projectionGeometry=AtomicReference<ProjectionGeometry?>(null)
         val touchLock=Any()
@@ -331,20 +331,20 @@ class SessionController(
         val protocolCaps=protocol.capabilities
         BridgeStore.log(id,"protocol="+protocol.id+" video="+protocolCaps.video+" audio="+protocolCaps.audio+
             " microphone="+protocolCaps.microphone+" wirelessHandoff="+protocolCaps.wirelessHandoff)
-        // 宿主能力：未声明（null）时按"全能力 + 不限 FPS"处理，保持既有行为。
+        // 宿主机能力：未声明（null）时按"全能力 + 不限 FPS"处理，保持既有行为。
         val caps=h.capabilities()?:HostCapabilities()
         if(!caps.touch||!caps.keys||!caps.microphone)
             BridgeStore.log(id,"host capabilities: touch="+caps.touch+" keys="+caps.keys+" microphone="+caps.microphone+" displays="+caps.displayCount)
         fun hostTouch(event:MotionEvent):Boolean =
             if(caps.touch&&protocolCaps.touch) runCatching{h.touch(event)}.getOrDefault(false) else false
-        // 宿主键码映射由宿主模块提供；`:session` 只保留语义（媒体 usage、UI 事件前缀、语音起停）。
+        // 宿主机键码映射由宿主机模块提供；`:session` 只保留语义（媒体 usage、UI 事件前缀、语音起停）。
         val keyMapper=h.keyMapper()
         val keyAdapter=CarPlayKeyAdapter(keyMapper)
         /** CarWith 键码的按下/松开：CarPlay 事件映射与手动模拟共用同一条发送路径。 */
         var keysUnsupportedLogged=false
         fun sendHostKey(code:Int,down:Boolean):Boolean = synchronized(keyLock){
             if(ended.get()||keysClosed)return@synchronized false
-            // 宿主或协议栈未声明按键能力时不投递，只记一次，避免每条事件都刷日志。
+            // 宿主机或协议栈未声明按键能力时不投递，只记一次，避免每条事件都刷日志。
             if(!caps.keys||!protocolCaps.keys){
                 if(!keysUnsupportedLogged){keysUnsupportedLogged=true
                     BridgeStore.log(id,"host or protocol does not accept key events; key dispatch disabled")}
@@ -789,7 +789,7 @@ class SessionController(
                     else{
                         // No host takes the surface, so the app-owned page stays for the whole session.
                         r.own(local);local.show(LocalVideoPhase.SCREEN)
-                        // 画面留在这里，触摸的落点也登记上：宿主没人接时事件会落到这张页面上。
+                        // 画面留在这里，触摸的落点也登记上：宿主机没人接时事件会落到这张页面上。
                         localContentRef.set(local)
                         // This page repaints on request, which is exactly what keeps the media stream
                         // alive while it stays still - and it never needed a front surface for that.
@@ -840,7 +840,7 @@ class SessionController(
                         encoderLock.lock()
                         try{
                             if(revision!=requestRevision.get()||ended.get())return@launch
-                            // 宿主声明了最大帧率时先夹到该上限，再交给编码器支持表。
+                            // 宿主机声明了最大帧率时先夹到该上限，再交给编码器支持表。
                             val bounded=caps.maxFps?.let{minOf(requested,it)}?:requested
                             val target=supported(hostWidth,hostHeight,bounded.coerceIn(1,limit))
                             if(target==null||target==currentFps)return@launch

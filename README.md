@@ -43,7 +43,7 @@ CarVeX 开发者交流群，欢迎一起讨论协议适配、车机兼容性与�
 
 ## 这是什么
 
-CarVeX 是多协议车机互联的 Android 实现，当前以 CarPlay 为主。项目目标不是只适配 CarPlay，而是在同一套会话、平台和宿主框架下接入 HiCar、CarLife、ICCOA 等协议。当前已展开的 CarPlay 链路与 docset 中记录的一致：
+CarVeX 是多协议车机互联的 Android 实现，当前以 CarPlay 为主。项目目标不是只适配 CarPlay，而是在同一套会话、平台和宿主机框架下接入 HiCar、CarLife、ICCOA 等协议。当前已展开的 CarPlay 链路与 docset 中记录的一致：
 
 协议研究、连接分析和固件证据位于独立仓库：[`iamr0s/carvex-carplay-research`](https://github.com/iamr0s/carvex-carplay-research)。
 
@@ -59,13 +59,13 @@ Bluetooth RFCOMM
 ```
 
 工程分层让协议逻辑可以在纯 JVM 上测试，Android 传输能力留在平台模块中。应用同时内置
-CarLife mixing 宿主适配器，使同一套会话可以从多个厂商的车机生态中启动。
+CarLife mixing 宿主机适配器，使同一套会话可以从多个厂商的车机生态中启动。
 
 Android 侧是分模组设计：`:protocol-api` 定义协议契约，`:protocol-carplay` 实现 CarPlay，
-`:bridge` 只负责会话编排，`:platform-android` 提供平台能力，`:app` 负责组装和宿主注入。
+`:bridge` 只负责会话编排，`:platform-android` 提供平台能力，`:app` 负责组装和宿主机注入。
 新增 HiCar、CarLife、ICCOA 等协议时，新增独立 `:protocol-*` 模块并接入 `:bridge`/`:app`，
-不需要改动 CarPlay 协议实现；`:protocol-carlife` 目前只是预留骨架。宿主/投屏实现也走独立
-`:host-*` 模块，小米 CarWith、OPPO CAR+ 等生态通过宿主插件接入，不改动协议栈。
+不需要改动 CarPlay 协议实现；`:protocol-carlife` 目前只是预留骨架。宿主机/投屏实现也走独立
+`:host-*` 模块，小米 CarWith、OPPO CAR+ 等生态通过宿主机插件接入，不改动协议栈。
 
 本仓库也可以放在更大的研究目录 `D:\carvex-research\android` 下；在这种布局中，
 父目录的 `AGENT.md` 同样适用。
@@ -77,10 +77,10 @@ Android 侧是分模组设计：`:protocol-api` 定义协议契约，`:protocol-
 - Wi-Fi handoff 与 AirPlay control / RTSP SETUP 流程。
 - 视频、音频、麦克风、RTP 时序与重传相关的协议与管线模块。车载音频与麦克风传输尚未
   实现；视频、触摸与兼容性仍需实车验收。
-- 小米、OPPO、vivo、三星的 CarLife mixing 宿主；荣耀仅用于打包。
+- 小米、OPPO、vivo、三星的 CarLife mixing 宿主机；荣耀仅用于打包。
 - 结构化桥接日志，支持复制与导出。
 - 在系统不暴露蓝牙 MAC 时，可通过 Shizuku 读取手机蓝牙 MAC，供身份握手使用。
-- 本地投屏页（连接建立页与无宿主页）。
+- 本地投屏页（连接建立页与无宿主机页）。
 - 浅色/深色/跟随系统主题，以及权限引导流程。
 
 ## 连接方式与当前限制
@@ -135,7 +135,7 @@ Shizuku 是可选项，只用于在系统限制 `Settings.Secure.bluetooth_addre
    .\gradlew.bat :app:assembleXiaomiDebug --no-daemon
    ```
 
-5. 构建五个品牌并运行宿主测试：
+5. 构建五个品牌并运行宿主机测试：
 
    ```powershell
    .\gradlew.bat :host-carlife-mixing:test :app:assembleXiaomiDebug :app:assembleOppoDebug `
@@ -188,22 +188,22 @@ CI 直接使用仓库内公开的 `.signing/keystore.properties` 与 `.signing/r
 :platform-android    蓝牙、网络、NSD 和 Surface 适配
 :protocol-api        协议契约（纯 JVM）
 :protocol-carlife    CarLife 协议预留骨架
-:host-api            宿主契约
+:host-api            宿主机契约
 :core                共享状态、事件与诊断
-:bridge              会话编排；不依赖任何宿主
-:host-carlife-mixing 各品牌共用的 CarLife mixing 宿主
-:app                 应用、UI、Service、flavor 与宿主接线
+:bridge              会话编排；不依赖任何宿主机
+:host-carlife-mixing 各品牌共用的 CarLife mixing 宿主机
+:app                 应用、UI、Service、flavor 与宿主机接线
 ```
 
-依赖方向严格向下。`:bridge` 不依赖宿主模块，由 `:app` 通过 `SessionController` 注入；
+依赖方向严格向下。`:bridge` 不依赖宿主机模块，由 `:app` 通过 `SessionController` 注入；
 `:protocol-carplay` 不得依赖 `:app`、`:bridge`，也不得依赖 Koin 或 Compose。
 
-## 扩展新协议与宿主
+## 扩展新协议与宿主机
 
 新增 HiCar、CarLife、ICCOA 等协议时：
 
 1. 新建 `:protocol-<name>` 模块，实现 `:protocol-api` 契约。
-2. 平台差异放 `:platform-android` 或新增 platform 模块；宿主 Service/权限放 `:host-*`。
+2. 平台差异放 `:platform-android` 或新增 platform 模块；宿主机 Service/权限放 `:host-*`。
 3. `:bridge` 只通过契约编排，`:app` 负责组装和 flavor。
 4. 不改动 `:protocol-carplay` 的现有状态机。
 
@@ -212,9 +212,9 @@ CI 直接使用仓库内公开的 `.signing/keystore.properties` 与 `.signing/r
 
 ## 品牌 flavor
 
-每个 flavor 改变 applicationId 并选择宿主插件。未知 flavor 会报错，不会自动回退到小米。
+每个 flavor 改变 applicationId 并选择宿主机插件。未知 flavor 会报错，不会自动回退到小米。
 
-| Flavor | 包名 | 宿主包 | Service |
+| Flavor | 包名 | 宿主机包 | Service |
 |---|---|---|---|
 | `xiaomi` | `com.baidu.carlife.xiaomi` | `com.miui.carlink` | `com.xiaomi.ucar.carlife.CarlifeConnService` |
 | `oppo` | `com.baidu.carlife.oppo` | `com.oplus.ocar` | `com.oplus.ocar.connect.carlife.CarlifeCastManagerService` |
@@ -222,7 +222,7 @@ CI 直接使用仓库内公开的 `.signing/keystore.properties` 与 `.signing/r
 | `samsung` | `com.baidu.carlife.samsung` | `com.samsung.android.carlink` | `com.samsung.android.carlink.mixing.CarLifeMixingService` |
 | `honor` | `com.baidu.carlife.honor` | `com.hihonor.auto` | 尚无已确认的公开 mixing endpoint |
 
-荣耀 flavor 可以构建用于打包，但宿主插件明确返回不可用。“APK 已安装”不能证明第三方
+荣耀 flavor 可以构建用于打包，但宿主机插件明确返回不可用。“APK 已安装”不能证明第三方
 应用可以绑定荣耀系统服务。
 
 ## 测试

@@ -11,7 +11,7 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  # 纯 JVM 的协议与宿主测试：与品牌无关，单独一个 job，和下面的矩阵并行跑。
+  # 纯 JVM 的协议与宿主机测试：与品牌无关，单独一个 job，和下面的矩阵并行跑。
   protocol-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 35

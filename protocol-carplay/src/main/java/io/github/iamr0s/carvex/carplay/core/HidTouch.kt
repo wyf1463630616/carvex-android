@@ -34,7 +34,7 @@ class HidTouch private constructor(private val id:Int,private val bits:Int,
     }
     companion object {
         /** 上一次 parse 看到的候选绝对触摸报告数量。>1 表示描述符里有多份，取的是报告 id 最小的那份；
-         *  调用方可以据此记录"描述符不唯一"（宿主侧策略，第 10 章标为本地收紧）。 */
+         *  调用方可以据此记录"描述符不唯一"（宿主机侧策略，第 10 章标为本地收紧）。 */
         @Volatile var ambiguousReportCount:Int=0
         fun parse(b:ByteArray):HidTouch {
             // 固件对 hidDescriptor 只受 iAP2 字段长度限制（65535），没有 4 KB 上限。
@@ -96,7 +96,7 @@ class HidTouch private constructor(private val id:Int,private val bits:Int,
             val contactReports=fields.mapValues{(_,groups)->groups.filterValues{0x0d0042 in it}}
             val candidates=contactReports.filterValues{groups->groups.isNotEmpty()&&groups.values.all{it.keys.containsAll(keys)}}
             // 多个候选报告（例如触摸屏与笔共存）时取报告 id 最小的那个，并把"不唯一"记下来供调用方记录。
-            // 这是宿主侧策略：第 10 章把"候选不唯一即整体禁用"列为本地收紧，不是协议约束。
+            // 这是宿主机侧策略：第 10 章把"候选不唯一即整体禁用"列为本地收紧，不是协议约束。
             require(candidates.isNotEmpty()){"No unique complete absolute touch report"}
             ambiguousReportCount=candidates.size
             val (id,groups)=candidates.entries.minByOrNull{it.key}!!

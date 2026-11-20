@@ -3,7 +3,7 @@ package io.github.iamr0s.carvex.protocol.api
 /**
  * 协议栈描述：编排层通过它了解"这个协议能做什么"。
  *
- * 与 `:host-api` 的 `CastHost` 无关：协议不需要知道宿主是谁，它只产出/消费数据。
+ * 与 `:host-api` 的 `CastHost` 无关：协议不需要知道宿主机是谁，它只产出/消费数据。
  */
 interface ProtocolStack {
     /** 稳定标识，用于设置项与日志；不要随版本变化。 */

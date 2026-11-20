@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** 翻译层测试：协议侧只给语义，码表由宿主提供；这里用一个假宿主固定语义。 */
+/** 转写层测试：协议侧只给语义，码表由宿主机提供；这里用一个假宿主机固定语义。 */
 class CarPlayKeyAdapterTest {
     private object FakeMapper:HostKeyMapper {
         override fun voiceStart():Int=100
@@ -55,7 +55,7 @@ class CarPlayKeyAdapterTest {
         val none=CarPlayKeyAdapter(null)
         assertNull(none.mediaUsage(0xb0))
         assertNull(none.uiEvent("ui:maps:"))
-        // Android 系统媒体键不依赖宿主码表，仍然可用。
+        // Android 系统媒体键不依赖宿主机码表，仍然可用。
         assertEquals(android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,none.systemMediaUsage(0xcd))
     }
 

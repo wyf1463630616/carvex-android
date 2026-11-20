@@ -245,7 +245,7 @@ androidComponents {
 dependencies {
     // 编排与协议实现；:app 直接依赖 :bridge，不再经过兼容壳模块。
     implementation(project(":bridge"))
-    // 宿主注册表与各生态插件：只有本模块（组装层）认识具体宿主。
+    // 宿主机注册表与各生态插件：只有本模块（组装层）认识具体宿主机。
     implementation(project(":host-api"))
     implementation(project(":host-carlife-mixing"))
     // 依赖注入：只在组装层使用，库模块不启动 Koin。

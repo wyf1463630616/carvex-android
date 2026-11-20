@@ -19,12 +19,12 @@ class BridgeApp:Application(),MixingServiceOwner{
         BridgeStore.init(this)
         // 连接历史要在任何界面读到它之前装好：首页第一段直接读它的 StateFlow。
         DeviceHistory.init(this)
-        // 组装层启动 Koin：协议栈与宿主插件都从这里取；库模块自身不依赖 Koin。
+        // 组装层启动 Koin：协议栈与宿主机插件都从这里取；库模块自身不依赖 Koin。
         org.koin.core.context.startKoin {
             androidContext(this@BridgeApp)
             modules(appModules)
         }
-        // 宿主注册表仍然显式安装：它只描述"有哪些宿主"，与 DI 容器解耦。
+        // 宿主机注册表仍然显式安装：它只描述"有哪些宿主机"，与 DI 容器解耦。
         io.github.iamr0s.carvex.hostregistry.HostRegistry.install(
             *org.koin.core.context.GlobalContext.get().getAll<io.github.iamr0s.carvex.hostregistry.HostPlugin>().toTypedArray())
     }

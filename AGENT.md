@@ -2,7 +2,7 @@
 
 [中文](AGENT.md) | [English](AGENT.en.md)
 
-本文件只适用于本仓库：**CarVeX**，多协议车机互联的 Android 实现，当前以 CarPlay 为主，包含协议栈、会话编排和品牌宿主适配。如果本仓库位于更大的研究工作区并存在 [`../AGENT.md`](../AGENT.md)，该工作区规则同样适用，并且仍是固件证据与研究流程的依据。
+本文件只适用于本仓库：**CarVeX**，多协议车机互联的 Android 实现，当前以 CarPlay 为主，包含协议栈、会话编排和品牌宿主机适配。如果本仓库位于更大的研究工作区并存在 [`../AGENT.md`](../AGENT.md)，该工作区规则同样适用，并且仍是固件证据与研究流程的依据。
 
 协议研究、连接分析和固件证据位于：[`iamr0s/carvex-carplay-research`](https://github.com/iamr0s/carvex-carplay-research)。
 
@@ -37,29 +37,29 @@
 
 硬性规则：
 
-- `:bridge` 必须与宿主无关。宿主由 `:app` 通过 `SessionController` 注入；不得给
-  `:bridge` 增加宿主依赖。
+- `:bridge` 必须与宿主机无关。宿主机由 `:app` 通过 `SessionController` 注入；不得给
+  `:bridge` 增加宿主机依赖。
 - `:protocol-carplay`、`:protocol-api`、`:pcm-core` 必须能在 JVM 上测试。不得加入
   Android UI、Koin、Compose 或 Service 生命周期。
 - 只有 `:app` 是组装层。Koin 在这里启动；库模块只暴露普通构造函数。
-- 厂商包名、Service 与插件位于 `:host-carlife-mixing`；选择品牌宿主属于 `:app`
+- 厂商包名、Service 与插件位于 `:host-carlife-mixing`；选择品牌宿主机属于 `:app`
   的 flavor。
 - 协议行为不得写进 UI 层。UI 只观察 `BridgeStore`、调用 `DeviceTransport`，不得自行
   发明握手步骤、延迟或重试。
 
-### 新增协议与宿主
+### 新增协议与宿主机
 
 新增 HiCar、CarLife、ICCOA 等协议时：
 
 1. 新建 `:protocol-<name>` 模块，实现 `:protocol-api` 契约。
-2. 平台差异放 `:platform-android` 或独立 platform 模块；宿主入口放 `:host-*`。
+2. 平台差异放 `:platform-android` 或独立 platform 模块；宿主机入口放 `:host-*`。
 3. `:bridge` 只通过契约编排，不出现协议名分支。
 4. 不得在 `:protocol-carplay` 或 `:app` 中按协议名硬编码分支。
 
-新增小米 CarWith、OPPO CAR+ 等投屏/宿主生态时，新建或扩展 `:host-*` 适配器，
-通过宿主 Service、权限和 Surface 接口接入，不修改 `:protocol-*` 状态机。现有
+新增小米 CarWith、OPPO CAR+ 等投屏/宿主机生态时，新建或扩展 `:host-*` 适配器，
+通过宿主机 Service、权限和 Surface 接口接入，不修改 `:protocol-*` 状态机。现有
 `:protocol-carlife` 是预留骨架，现有 `:host-carlife-mixing` 覆盖小米/OPPO/vivo/三星
-的 CarLife mixing 宿主，不代表已经支持所有 CarWith/CAR+ 能力。
+的 CarLife mixing 宿主机，不代表已经支持所有 CarWith/CAR+ 能力。
 
 ## 3. 修改规则
 
@@ -87,7 +87,7 @@
 - 在没有证据时关闭 `OPEN` 研究项。
 - 把第三方实现当作协议依据。
 - 提交 `local.properties`、设备私有日志或真实用户数据；签名密钥库与口令在本仓库公开，属于例外。
-- 增加自动 flavor 或宿主回退。
+- 增加自动 flavor 或宿主机回退。
 - 为了让构建通过而削弱 lint、测试或签名检查。
 
 ## 4. 构建、签名与版本
@@ -112,21 +112,21 @@ Wrapper。`compileSdk`/`targetSdk` 为 37，`minSdk` 为 29。
 - 保持 R8、资源压缩与 `lint { abortOnError = true }` 开启。若 lint 判断有误，修正
   代码或加入范围明确的抑制，不要整体关闭。
 
-## 5. Flavor 与宿主
+## 5. Flavor 与宿主机
 
-| Flavor | 包名 | 宿主状态 |
+| Flavor | 包名 | 宿主机状态 |
 |---|---|---|
 | `xiaomi` | `com.baidu.carlife.xiaomi` | 小米 CarWith endpoint |
 | `oppo` | `com.baidu.carlife.oppo` | OPPO Car+ endpoint |
 | `vivo` | `com.baidu.carlife.vivo` | vivo endpoint |
 | `samsung` | `com.baidu.carlife.samsung` | 三星 endpoint，含一个备用 Service |
-| `honor` | `com.baidu.carlife.honor` | 仅打包；宿主插件不可用 |
+| `honor` | `com.baidu.carlife.honor` | 仅打包；宿主机插件不可用 |
 
 - 未知 flavor 必须报错，不能静默变成小米。
-- 荣耀插件返回不可用，因为没有已确认的公开 mixing endpoint。不得把“宿主应用已安装”
+- 荣耀插件返回不可用，因为没有已确认的公开 mixing endpoint。不得把“宿主机应用已安装”
   当成“Service 可绑定”。
 - 修改 applicationId、Service 类、action 或插件 ID 属于兼容性变更：必须有证据，
-  同步宿主 README 与本表，并测试受影响 flavor。
+  同步宿主机 README 与本表，并测试受影响 flavor。
 - `:host-carlife-mixing` 同时拥有 `CarlifeConnectService` 的前台生命周期、KeepAlive
   绑定和 Manifest 声明。不要在 `:app` 中重复实现。
 

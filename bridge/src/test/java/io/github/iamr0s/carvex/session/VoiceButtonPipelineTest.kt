@@ -11,7 +11,7 @@ import org.junit.Test
  * button coordinator. The queue and CarWith endpoint are fakes; no Android Binder is needed. */
 class VoiceButtonPipelineTest {
     private companion object {
-        /** 测试用语义码：与实际宿主码值无关，只验证"开始/结束"两条路径。 */
+        /** 测试用语义码：与实际宿主机码值无关，只验证"开始/结束"两条路径。 */
         const val VOICE_START=8107
         const val VOICE_STOP=8108
     }
@@ -29,7 +29,7 @@ class VoiceButtonPipelineTest {
             while(queue.isNotEmpty()){
                 val requested=queue.removeFirst()
                 val dispatch:(Boolean)->Boolean={start->
-                    // 测试固定两个语义码：协议侧只关心"语音开始/结束"，具体码值由宿主决定。
+                    // 测试固定两个语义码：协议侧只关心"语音开始/结束"，具体码值由宿主机决定。
                     val code=if(start)VOICE_START else VOICE_STOP
                     delivered+=code to true
                     if(downAccepted)delivered+=code to false

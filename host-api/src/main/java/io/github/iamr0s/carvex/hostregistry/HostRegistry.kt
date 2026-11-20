@@ -5,9 +5,9 @@ import io.github.iamr0s.carvex.sessioncore.CastHost
 import io.github.iamr0s.carvex.sessioncore.HostCallbacks
 
 /**
- * 一个内容宿主的插件描述。
+ * 一个内容宿主机的插件描述。
  *
- * 只描述"怎么判断可用、怎么创建"；不包含任何协议知识，也不假定宿主类型。
+ * 只描述"怎么判断可用、怎么创建"；不包含任何协议知识，也不假定宿主机类型。
  * 具体实现统一放在 `:host-carlife-mixing`，由 `:app` 注册。
  */
 interface HostPlugin {
@@ -20,15 +20,15 @@ interface HostPlugin {
     /** 该生态在本机是否可用（应用已安装、服务可绑定等）。实现不得抛异常。 */
     fun isAvailable(context: Context): Boolean
 
-    /** 创建宿主实例；调用方保证 `isAvailable` 为真。 */
+    /** 创建宿主机实例；调用方保证 `isAvailable` 为真。 */
     fun create(context: Context, callbacks: HostCallbacks): CastHost
 }
 
 /**
- * 宿主插件注册表。
+ * 宿主机插件注册表。
  *
  * 设计要点：
- *  1. 注册发生在 `:app` 启动时，注册表本身不依赖任何宿主模块；
+ *  1. 注册发生在 `:app` 启动时，注册表本身不依赖任何宿主机模块；
  *  2. 「可用性探测」以函数参数注入，便于单测在不启动 Android 的情况下验证选择逻辑；
  *  3. 选择顺序 = 注册顺序，`select(id)` 才按标识精确匹配。
  */

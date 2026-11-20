@@ -24,7 +24,7 @@ class CarlifeConnectService:Service() {
         activeInstance=this
     }
     override fun onBind(intent:Intent?):IBinder=binder // KeepAlive does not establish a session.
-    /** 只记录宿主 extras 的 key 和类型，不记录值。 */
+    /** 只记录宿主机 extras 的 key 和类型，不记录值。 */
     @Suppress("DEPRECATION")
     private fun Intent.describeExtras():String {
         val extras=extras?:return ""
